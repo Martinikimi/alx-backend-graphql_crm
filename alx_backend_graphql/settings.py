@@ -28,6 +28,12 @@ INSTALLED_APPS = [
     'django_filters',
 ]
 
+GRAPHENE = {
+    "SCHEMA": "graphql_crm.schema.schema",
+    "SCHEMA_INDENT": 2,
+}
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
