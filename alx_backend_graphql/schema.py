@@ -1,6 +1,9 @@
 import graphene
 
-class Query(graphene.ObjectType):
+class CRMQuery(graphene.ObjectType):
+    pass
+
+class Query(CRMQuery, graphene.ObjectType):
     hello = graphene.String()
     
     def resolve_hello(self, info):
