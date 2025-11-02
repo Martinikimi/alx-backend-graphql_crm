@@ -222,3 +222,54 @@ class Query(graphene.ObjectType):
     
     def resolve_orders(self, info):
         return Order.objects.all()
+
+import graphene
+from graphene_django import DjangoObjectType
+from django.db.models import F
+from products.models import Product  # Adjust import based on your app structure
+
+class ProductType(DjangoObjectType):
+    class Meta:
+        model = Product
+        fields = ("id", "name", "stock")
+
+class UpdateLowStockProducts(graphene.Mutation):
+    class Arguments:
+        pass
+
+    updated_products = graphene.List(ProductType)
+    message = graphene.String()
+    success = graphene.Boolean()
+
+    def mutate(self, info):
+        try:
+            # Query products with stock < 10
+            low_stock_products = Product.objects.filter(stock__lt=10)
+            
+            # Update stock by incrementing by 10
+            updated_count = low_stock_products.update(stock=F('stock') + 10)
+            
+            # Fetch the updated products
+            updated_products = Product.objects.filter(
+                id__in=low_stock_products.values_list('id', flat=True)
+            )
+            
+            return UpdateLowStockProducts(
+                updated_products=updated_products,
+                message=f"Successfully updated {updated_count} low-stock products",
+                success=True
+            )
+            
+        except Exception as e:
+            return UpdateLowStockProducts(
+                updated_products=[],
+                message=f"Error updating low-stock products: {str(e)}",
+                success=False
+            )
+
+class Mutation(graphene.ObjectType):
+    update_low_stock_products = UpdateLowStockProducts.Field()
+
+# Add this to your existing schema if you have other mutations
+# class Mutation(graphene.ObjectType, ...):
+#     update_low_stock_products = UpdateLowStockProducts.Field()
