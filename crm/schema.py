@@ -4,6 +4,7 @@ from django.db import transaction
 from django.db.models import Q
 from .models import Customer, Product, Order
 from .filters import CustomerFilter, ProductFilter, OrderFilter
+from crm.models import Product
 
 # Types with Node for filtering
 class CustomerType(DjangoObjectType):
