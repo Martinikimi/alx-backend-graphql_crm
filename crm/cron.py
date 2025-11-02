@@ -1,6 +1,6 @@
 from datetime import datetime
-import requests
-import json
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 
 def log_crm_heartbeat():
     """
@@ -16,28 +16,34 @@ def log_crm_heartbeat():
         with open('/tmp/crm_heartbeat_log.txt', 'a') as log_file:
             log_file.write(message + '\n')
         
-        # Optional: Verify GraphQL endpoint is responsive
+        # Optional: Verify GraphQL endpoint is responsive using gql
         try:
-            # Query the GraphQL hello field to verify endpoint responsiveness
-            url = "http://localhost:8000/graphql"
-            query = {
-                "query": "query { hello }"
-            }
+            # Set up GraphQL transport and client
+            transport = RequestsHTTPTransport(
+                url="http://localhost:8000/graphql",
+                verify=True,
+                retries=3,
+            )
             
-            response = requests.post(url, json=query, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                if 'data' in data and 'hello' in data['data']:
-                    with open('/tmp/crm_heartbeat_log.txt', 'a') as log_file:
-                        log_file.write(f"{timestamp} GraphQL endpoint is responsive: {data['data']['hello']}\n")
-                else:
-                    with open('/tmp/crm_heartbeat_log.txt', 'a') as log_file:
-                        log_file.write(f"{timestamp} GraphQL endpoint responded with errors\n")
+            client = Client(transport=transport, fetch_schema_from_transport=True)
+            
+            # Query the GraphQL hello field to verify endpoint responsiveness
+            query = gql("""
+                query {
+                    hello
+                }
+            """)
+            
+            result = client.execute(query)
+            
+            if 'hello' in result:
+                with open('/tmp/crm_heartbeat_log.txt', 'a') as log_file:
+                    log_file.write(f"{timestamp} GraphQL endpoint is responsive: {result['hello']}\n")
             else:
                 with open('/tmp/crm_heartbeat_log.txt', 'a') as log_file:
-                    log_file.write(f"{timestamp} GraphQL endpoint returned status code: {response.status_code}\n")
+                    log_file.write(f"{timestamp} GraphQL endpoint responded without hello field\n")
                     
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             with open('/tmp/crm_heartbeat_log.txt', 'a') as log_file:
                 log_file.write(f"{timestamp} GraphQL endpoint check failed: {str(e)}\n")
         
